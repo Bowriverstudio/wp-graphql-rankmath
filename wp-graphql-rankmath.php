@@ -13,7 +13,8 @@
  * License: GPL-3
  * License URI: https://www.gnu.org/licenses/gpl-3.0.html
  */
-
+use RankMath\Helper;
+use RankMath\Admin\Admin_Helper;
 // Exit if accessed directly.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -74,36 +75,88 @@ add_action(
 	'graphql_register_types',
 	function() {
 
-		// register_graphql_object_type(
-		// 	'ClaritySettings',
-		// 	array(
-		// 		'fields' => array(
-		// 			'projectId' => array(
-		// 				'type'        => array( 'non_null' => 'String' ),
-		// 				'description' => __( 'Settings for Analytics', 'wp-graphql-clarity' ),
-		// 			),
-		// 		),
-		// 	)
-		// );
+		register_graphql_object_type(
+			'RankMathHours',
+			array(
+				'fields' => array(
+					'day' => array(
+						'type'        => array( 'non_null' => 'String' ),
+						'description' => __( 'Day', 'wp-graphql-clarity' ),
+					),
+					'time' => array(
+						'type'        => array( 'non_null' => 'String' ),
+						'description' => __( 'Like: 09:00-19:00', 'wp-graphql-clarity' ),
+					),
+				),
+			)
+		);
 
-		// register_graphql_field(
-		// 	'RootQuery',
-		// 	'ClaritySettings',
-		// 	array(
-		// 		'type'        => 'ClaritySettings',
-		// 		'description' => __( 'Data for Clarity', 'wp-graphql-clarity' ),
-		// 		'args'        => array(),
-		// 		'resolve'     => function( $root, $args, $context, $info ) {
+		register_graphql_object_type(
+			'RankMathLocalAddress',
+			array(
+				'fields' => array(
+					'streetAddress' => array(
+						'type'        => array( 'non_null' => 'String' ),
+						'description' => __( 'streetAddress', 'wp-graphql-clarity' ),
+					),
+					'addressLocality' => array(
+						'type'        => array( 'non_null' => 'String' ),
+						'description' => __( 'addressLocality or City', 'wp-graphql-clarity' ),
+					),
+					'addressRegion' => array(
+						'type'        => array( 'non_null' => 'String' ),
+						'description' => __( 'addressRegion', 'wp-graphql-clarity' ),
+					),
+					'postalCode' => array(
+						'type'        => array( 'non_null' => 'String' ),
+						'description' => __( 'postalCode or City', 'wp-graphql-clarity' ),
+					),
+					'addressCountry' => array(
+						'type'        => array( 'non_null' => 'String' ),
+						'description' => __( 'addressCountry or City', 'wp-graphql-clarity' ),
+					),
+				),
+			)
+		);
 
-		// 			$clarity_project_id = get_option( 'clarity_project_id' );
-		// 			// graphql_debug( $clarity_project_id, array( 'type' => 'clarity_project_id' ) );
-		// 			return array(
-		// 				'projectId' => $clarity_project_id,
-		// 			);
+		register_graphql_object_type(
+			'RankMathTitles',
+			array(
+				'description' => __( 'RankMath Titles ', 'wp-graphql-clarity' ),
 
-		// 		},
-		// 	)
-		// );
+				'fields' => array(
+					'opening_hours' => array(
+						'type'        => array( 'non_null' => [ 'list_of' => 'RankMathHours' ] ),
+						'description' => __( 'Settings for Analytics', 'wp-graphql-clarity' ),
+					),
+					'local_address' => array(
+						'type'        => array( 'non_null' => 'RankMathLocalAddress' ),
+						'description' => __( 'local_address', 'wp-graphql-clarity' ),
+					),
+				),
+			)
+		);
+
+		register_graphql_field(
+			'RootQuery',
+			'RankMathTitles',
+			array(
+				'type'        => 'RankMathTitles',
+				'description' => __( 'Data for Clarity', 'wp-graphql-clarity' ),
+				'args'        => array(),
+				'resolve'     => function( $root, $args, $context, $info ) {
+					// Rankmath stores titles in  option_name rank-math-options-titles
+					// SELECT * FROM wp_options WHERE option_name="rank-math-options-titles"
+					$fields = array( 'opening_hours',  'local_address' );
+					$values = array();
+					foreach( $fields as $field ){
+						$values[$field] = Helper::get_settings( "titles.$field" );
+					}
+				
+					return $values;
+				},
+			)
+		);
 
 	}
 );
